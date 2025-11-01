@@ -24,7 +24,7 @@ pipeline {
             steps {
                 dir('backend') {
                    echo 'Bulding...'
-                   sh 'npm build'
+                   sh 'npm run build'
                 }
             }
         }
