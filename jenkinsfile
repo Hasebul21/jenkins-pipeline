@@ -5,6 +5,11 @@ pipeline {
         nodejs 'NODE24'
     }
 
+    environment {
+        DOCKERHUB_CREDENTIALS = credentials('dockerhub')
+        DOCKERHUB_USER = 'hasebul21'
+    }
+
     stages {
         stage('Backend Installation') {
             steps {
@@ -55,6 +60,27 @@ pipeline {
                 }
             }
         }
+        /*
+        stage('Docker Build and Push') {
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
+
+                        echo 'Building and pushing backend image...'
+                        dir('backend') {
+                            def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:latest")
+                            backendImage.push()
+                        }
+
+                        echo 'Building and pushing frontend image...'
+                        dir('frontend') {
+                            def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:latest")
+                            frontendImage.push()
+                        }
+                    }
+                }
+            }
+        }*/
 
     }
 
