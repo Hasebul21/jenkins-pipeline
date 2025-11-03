@@ -89,6 +89,17 @@ pipeline {
     post {
         always {
             echo '🕓 Pipeline finished (always runs).'
+            slackSend(
+                channel: '#recruitment-app-jenkins-alerts',
+                color: '#439FE0',
+                message: """ℹ️ *Pipeline Completed!*
+*Job:* ${env.JOB_NAME}
+*Build:* #${env.BUILD_NUMBER}
+*Status:* ${currentBuild.currentResult}
+*Branch:* ${env.GIT_BRANCH ?: 'main'}
+*Triggered by:* ${currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'}
+*URL:* ${env.BUILD_URL}"""
+            )
         }
 
         success {
