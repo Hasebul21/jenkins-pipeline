@@ -10,7 +10,7 @@ pipeline {
         DOCKERHUB_USER = 'hasebul21'
 
         SLACK_BASE_URL = 'https://slack.com/api/chat.postMessage'
-        SLACK_TOKEN = credentials('3yDLtdagJFQXUEZlr5Lg41Jy') // Jenkins secret text credential ID
+        SLACK_TOKEN = '3yDLtdagJFQXUEZlr5Lg41Jy'
         SLACK_CHANNEL = '#recruitment-app-jenkins-alerts'
     }
 
