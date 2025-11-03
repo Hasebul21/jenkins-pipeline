@@ -1,6 +1,6 @@
 pipeline {
     agent any
-    
+
     tools {
         nodejs 'NODE24'
     }
@@ -8,75 +8,74 @@ pipeline {
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub'
         DOCKERHUB_USER = 'hasebul21'
-
-        SLACK_BASE_URL = 'https://slack.com/api/chat.postMessage'
-        SLACK_TOKEN = '3yDLtdagJFQXUEZlr5Lg41Jy'
-        SLACK_CHANNEL = '#recruitment-app-jenkins-alerts'
     }
 
     stages {
         stage('Backend Installation') {
             steps {
                 dir('backend') {
-                    echo 'Install backend dependencies...'
+                    echo '📦 Installing backend dependencies...'
                     sh 'npm install'
                 }
-               
             }
         }
+
         stage('Backend Build') {
             steps {
                 dir('backend') {
-                   echo 'Bulding...'
-                   sh 'npm run build'
+                    echo '🏗️ Building backend...'
+                    sh 'npm run build'
                 }
             }
         }
+
         stage('Backend Test') {
             steps {
                 dir('backend') {
-                   echo 'Testing...'
-                   sh 'npm test'
+                    echo '🧪 Running backend tests...'
+                    sh 'npm test'
                 }
             }
         }
+
         stage('Frontend Installation') {
             steps {
                 dir('frontend') {
-                   echo 'Installing...'
-                   sh 'npm install'
+                    echo '📦 Installing frontend dependencies...'
+                    sh 'npm install'
                 }
             }
         }
+
         stage('Frontend Build') {
             steps {
                 dir('frontend') {
-                   echo 'Building...'
-                   sh 'npm run build'
+                    echo '🏗️ Building frontend...'
+                    sh 'npm run build'
                 }
             }
         }
+
         stage('Frontend Test') {
             steps {
                 dir('frontend') {
-                   echo 'Testing...'
-                   sh 'npm run test'
+                    echo '🧪 Running frontend tests...'
+                    sh 'npm run test'
                 }
             }
         }
-        
+
         stage('Docker Build and Push') {
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
-
-                        echo 'Building and pushing backend image...'
+                        echo '🐳 Building and pushing backend image...'
                         dir('backend') {
                             def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:latest")
                             backendImage.push()
                         }
 
-                        echo 'Building and pushing frontend image...'
+                        echo '🐳 Building and pushing frontend image...'
                         dir('frontend') {
                             def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:latest")
                             frontendImage.push()
@@ -85,29 +84,38 @@ pipeline {
                 }
             }
         }
-
     }
 
     post {
         always {
-            echo 'This will always run after the stages.'
+            echo '🕓 Pipeline finished (always runs).'
         }
 
         success {
-            echo 'This will run only if the pipeline succeeds.'
+            echo '✅ Pipeline succeeded!'
             slackSend(
                 channel: '#recruitment-app-jenkins-alerts',
                 color: '#36a64f',
-                message: "✅ *Deployment Successful!*\nJob: `${env.JOB_NAME}`\nBuild: #${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}"
+                message: """✅ *Deployment Successful!*
+*Job:* ${env.JOB_NAME}
+*Build:* #${env.BUILD_NUMBER}
+*Branch:* ${env.GIT_BRANCH ?: 'main'}
+*Triggered by:* ${currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'}
+*URL:* ${env.BUILD_URL}"""
             )
         }
 
         failure {
-            echo 'This will run only if the pipeline fails.'
+            echo '❌ Pipeline failed!'
             slackSend(
                 channel: '#recruitment-app-jenkins-alerts',
                 color: '#FF0000',
-                message: "❌ *Deployment Failed!*\nJob: `${env.JOB_NAME}`\nBuild: #${env.BUILD_NUMBER}\nURL: ${env.BUILD_URL}"
+                message: """❌ *Deployment Failed!*
+*Job:* ${env.JOB_NAME}
+*Build:* #${env.BUILD_NUMBER}
+*Branch:* ${env.GIT_BRANCH ?: 'main'}
+*Triggered by:* ${currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'}
+*URL:* ${env.BUILD_URL}"""
             )
         }
     }
