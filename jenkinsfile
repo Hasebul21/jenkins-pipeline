@@ -93,7 +93,10 @@ pipeline {
             script {
                 def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
                 def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-                def branch = sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+                def branch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: sh(
+    returnStdout: true,
+    script: "git rev-parse --abbrev-ref HEAD"
+).trim()
                 def deployer = currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'
 
                 slackSend(
@@ -116,7 +119,10 @@ pipeline {
             script {
                 def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
                 def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-                def branch = sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+                def branch = env.GIT_BRANCH ?: env.BRANCH_NAME ?: sh(
+    returnStdout: true,
+    script: "git rev-parse --abbrev-ref HEAD"
+).trim()
                 def deployer = currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'
 
                 slackSend(
