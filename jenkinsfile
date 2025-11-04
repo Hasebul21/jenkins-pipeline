@@ -1,14 +1,17 @@
 pipeline {
-    agent {
-        label 'docker'
-    }
+    agent { label 'docker' }
+
     tools {
         nodejs 'NODE24'
     }
+
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub'
         DOCKERHUB_USER = 'hasebul21'
+        SLACK_CHANNEL = '#recruitment-app-jenkins-alerts'
+        TIMEZONE = 'Asia/Dhaka'
     }
+
     stages {
         stage('Backend Installation') {
             steps {
@@ -18,6 +21,7 @@ pipeline {
                 }
             }
         }
+
         stage('Backend Build') {
             steps {
                 dir('backend') {
@@ -26,6 +30,7 @@ pipeline {
                 }
             }
         }
+
         stage('Backend Test') {
             steps {
                 dir('backend') {
@@ -34,6 +39,7 @@ pipeline {
                 }
             }
         }
+
         stage('Frontend Installation') {
             steps {
                 dir('frontend') {
@@ -42,6 +48,7 @@ pipeline {
                 }
             }
         }
+
         stage('Frontend Build') {
             steps {
                 dir('frontend') {
@@ -50,6 +57,7 @@ pipeline {
                 }
             }
         }
+
         stage('Frontend Test') {
             steps {
                 dir('frontend') {
@@ -58,6 +66,7 @@ pipeline {
                 }
             }
         }
+
         stage('Docker Build and Push') {
             steps {
                 script {
@@ -67,6 +76,7 @@ pipeline {
                             def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:latest")
                             backendImage.push()
                         }
+
                         echo '🐳 Building and pushing frontend image...'
                         dir('frontend') {
                             def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:latest")
@@ -77,37 +87,52 @@ pipeline {
             }
         }
     }
+
     post {
         success {
-            echo '✅ Pipeline succeeded!'
-            def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("Asia/Dhaka"))
-            slackSend(
-                channel: '#recruitment-app-jenkins-alerts',
-                color: '#36a64f',
-                message: """✅ *Deployment Successful!*
+            script {
+                def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
+                def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                def branch = sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+                def deployer = currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'
+
+                slackSend(
+                    channel: env.SLACK_CHANNEL,
+                    color: '#36a64f',
+                    message: """✅ *Deployment Successful!*
+*Environment:* ${params.DEPLOY_ENV ?: 'staging'}
+*Branch:* ${branch}
+*Commit:* ${commit}
+*Triggered by:* ${deployer}
+*Timestamp:* ${timestamp}
 *Job:* ${env.JOB_NAME}
 *Build:* #${env.BUILD_NUMBER}
-*Branch:* ${env.GIT_BRANCH ?: 'main'}
-*Triggered by:* ${currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'}
-*Environment:* ${params.DEPLOY_ENV ?: 'staging'}
-*Timestamp:* ${timestamp}
 *URL:* ${env.BUILD_URL}"""
-            )
+                )
+            }
         }
+
         failure {
-            echo '❌ Pipeline failed!'
-            def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone("Asia/Dhaka"))
-            slackSend(
-                channel: '#recruitment-app-jenkins-alerts',
-                color: '#FF0000',
-                message: """❌ *Deployment Failed!*
+            script {
+                def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
+                def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                def branch = sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+                def deployer = currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'
+
+                slackSend(
+                    channel: env.SLACK_CHANNEL,
+                    color: '#FF0000',
+                    message: """❌ *Deployment Failed!*
+*Environment:* ${params.DEPLOY_ENV ?: 'staging'}
+*Branch:* ${branch}
+*Commit:* ${commit}
+*Triggered by:* ${deployer}
+*Timestamp:* ${timestamp}
 *Job:* ${env.JOB_NAME}
 *Build:* #${env.BUILD_NUMBER}
-*Branch:* ${env.GIT_BRANCH ?: 'main'}
-*Triggered by:* ${currentBuild.getBuildCauses()[0]?.userName ?: 'Automated Trigger'}
-*Environment:* ${params.DEPLOY_ENV ?: 'staging'}
-*Timestamp:* ${timestamp}
 *URL:* ${env.BUILD_URL}"""
-            )
+                )
+            }
         }
     }
+}
