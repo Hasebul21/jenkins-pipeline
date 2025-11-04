@@ -87,23 +87,23 @@ pipeline {
             }
         }
     }
-post {
-    success {
-        script {
-            def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
-            def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-            def branch = (env.GIT_BRANCH ?: env.BRANCH_NAME ?: 
-                sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
-            ).replaceFirst(/^origin\//, '')
 
-            // Try to get full name first, fallback to username, then 'Automated Trigger'
-            def cause = currentBuild.getBuildCauses()[0]
-            def deployer = cause?.userFullName ?: cause?.userName ?: 'Automated Trigger'
+    post {
+        success {
+            script {
+                def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
+                def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                def branch = (env.GIT_BRANCH ?: env.BRANCH_NAME ?: 
+                    sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+                ).replaceFirst(/^origin\//, '')
 
-            slackSend(
-                channel: env.SLACK_CHANNEL,
-                color: '#36a64f',
-                message: """✅ *Deployment Successful!*
+                def cause = currentBuild.getBuildCauses()[0]
+                def deployer = cause?.userFullName ?: cause?.userName ?: 'Automated Trigger'
+
+                slackSend(
+                    channel: env.SLACK_CHANNEL,
+                    color: '#36a64f',
+                    message: """✅ *Deployment Successful!*
 *Environment:* ${params.DEPLOY_ENV ?: 'staging'}
 *Branch:* ${branch}
 *Commit:* ${commit}
@@ -112,25 +112,25 @@ post {
 *Job:* ${env.JOB_NAME}
 *Build:* #${env.BUILD_NUMBER}
 *URL:* ${env.BUILD_URL}"""
-            )
+                )
+            }
         }
-    }
 
-    failure {
-        script {
-            def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
-            def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-            def branch = (env.GIT_BRANCH ?: env.BRANCH_NAME ?: 
-                sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
-            ).replaceFirst(/^origin\//, '')
+        failure {
+            script {
+                def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
+                def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
+                def branch = (env.GIT_BRANCH ?: env.BRANCH_NAME ?: 
+                    sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
+                ).replaceFirst(/^origin\//, '')
 
-            def cause = currentBuild.getBuildCauses()[0]
-            def deployer = cause?.userFullName ?: cause?.userName ?: 'Automated Trigger'
+                def cause = currentBuild.getBuildCauses()[0]
+                def deployer = cause?.userFullName ?: cause?.userName ?: 'Automated Trigger'
 
-            slackSend(
-                channel: env.SLACK_CHANNEL,
-                color: '#FF0000',
-                message: """❌ *Deployment Failed!*
+                slackSend(
+                    channel: env.SLACK_CHANNEL,
+                    color: '#FF0000',
+                    message: """❌ *Deployment Failed!*
 *Environment:* ${params.DEPLOY_ENV ?: 'staging'}
 *Branch:* ${branch}
 *Commit:* ${commit}
@@ -139,11 +139,8 @@ post {
 *Job:* ${env.JOB_NAME}
 *Build:* #${env.BUILD_NUMBER}
 *URL:* ${env.BUILD_URL}"""
-            )
-        }
-    }
-}
-
+                )
+            }
         }
     }
 }
