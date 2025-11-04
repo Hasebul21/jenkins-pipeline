@@ -5,6 +5,15 @@ pipeline {
         nodejs 'NODE24'
     }
 
+     parameters {
+        choice(
+            name: 'DEPLOY_ENV',
+            choices: ['staging', 'production'],
+            description: 'Select the environment to deploy to'
+        )
+    }
+
+
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub'
         DOCKERHUB_USER = 'hasebul21'
