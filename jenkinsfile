@@ -99,57 +99,8 @@ pipeline {
 
     post {
         success {
-            script {
-                def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
-                def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-                def branch = (env.GIT_BRANCH ?: env.BRANCH_NAME ?: 
-                    sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
-                ).replaceFirst(/^origin\//, '')
-
-                def cause = currentBuild.getBuildCauses()[0]
-                def deployer = cause?.userFullName ?: cause?.userName ?: 'Automated Trigger'
-
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: '#36a64f',
-                    message: """✅ *Deployment Successful!*
-*Environment:* ${params.DEPLOY_ENV ?: 'staging'}
-*Branch:* ${branch}
-*Commit:* ${commit}
-*Triggered by:* ${deployer}
-*Timestamp:* ${timestamp}
-*Job:* ${env.JOB_NAME}
-*Build:* #${env.BUILD_NUMBER}
-*URL:* ${env.BUILD_URL}"""
-                )
-            }
+            
         }
 
-        failure {
-            script {
-                def timestamp = new Date().format("yyyy-MM-dd HH:mm:ss", TimeZone.getTimeZone(env.TIMEZONE))
-                def commit = sh(returnStdout: true, script: "git rev-parse --short HEAD").trim()
-                def branch = (env.GIT_BRANCH ?: env.BRANCH_NAME ?: 
-                    sh(returnStdout: true, script: "git rev-parse --abbrev-ref HEAD").trim()
-                ).replaceFirst(/^origin\//, '')
-
-                def cause = currentBuild.getBuildCauses()[0]
-                def deployer = cause?.userFullName ?: cause?.userName ?: 'Automated Trigger'
-
-                slackSend(
-                    channel: env.SLACK_CHANNEL,
-                    color: '#FF0000',
-                    message: """❌ *Deployment Failed!*
-*Environment:* ${params.DEPLOY_ENV ?: 'staging'}
-*Branch:* ${branch}
-*Commit:* ${commit}
-*Triggered by:* ${deployer}
-*Timestamp:* ${timestamp}
-*Job:* ${env.JOB_NAME}
-*Build:* #${env.BUILD_NUMBER}
-*URL:* ${env.BUILD_URL}"""
-                )
-            }
-        }
     }
 }
