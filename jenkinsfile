@@ -98,8 +98,11 @@ pipeline {
     }
 
     post {
-        success {
-            
+       success {
+            echo 'Build succeeded'
+        }
+        failure {
+            echo 'Build failed'
         }
 
     }
