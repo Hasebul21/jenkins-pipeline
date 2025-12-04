@@ -48,28 +48,35 @@ pipeline {
     stages {
 
         stage('Checkout Backend') {
-            steps {
-                dir('backend') {
-                    echo "📥 Checking out backend branch: ${params.BRANCH_TO_BUILD}"
-                    checkout([$class: 'GitSCM', 
-                        branches: [[name: "*/${params.BRANCH_TO_BUILD}"]],
-                        userRemoteConfigs: [[url: 'git@github.com:your-org/backend-repo.git']]
-                    ])
-                }
-            }
+    steps {
+        dir('backend') {
+            echo "📥 Checking out backend branch: ${params.BRANCH_TO_BUILD}"
+            checkout([$class: 'GitSCM', 
+                branches: [[name: "*/${params.BRANCH_TO_BUILD}"]],
+                userRemoteConfigs: [[
+                    url: 'https://github.com/Hasebul21/jenkins-pipeline.git',
+                    credentialsId: 'github-pat' // Use the Jenkins PAT credentials
+                ]]
+            ])
         }
+    }
+}
 
-        stage('Checkout Frontend') {
-            steps {
-                dir('frontend') {
-                    echo "📥 Checking out frontend branch: ${params.BRANCH_TO_BUILD}"
-                    checkout([$class: 'GitSCM', 
-                        branches: [[name: "*/${params.BRANCH_TO_BUILD}"]],
-                        userRemoteConfigs: [[url: 'git@github.com:your-org/frontend-repo.git']]
-                    ])
-                }
-            }
+stage('Checkout Frontend') {
+    steps {
+        dir('frontend') {
+            echo "📥 Checking out frontend branch: ${params.BRANCH_TO_BUILD}"
+            checkout([$class: 'GitSCM', 
+                branches: [[name: "*/${params.BRANCH_TO_BUILD}"]],
+                userRemoteConfigs: [[
+                    url: 'https://github.com/Hasebul21/jenkins-pipeline.git',
+                    credentialsId: 'github-pat' // Use the Jenkins PAT credentials
+                ]]
+            ])
         }
+    }
+}
+
 
         stage('Backend Installation') {
             steps {
