@@ -49,33 +49,7 @@ pipeline {
             }
         }
 
-        stage('Frontend Installation') {
-            steps {
-                dir('frontend') {
-                    echo '📦 Installing frontend dependencies...'
-                    sh 'npm install'
-                }
-            }
-        }
-
-        stage('Frontend Build') {
-            steps {
-                dir('frontend') {
-                    echo '🏗️ Building frontend...'
-                    sh 'npm run build'
-                }
-            }
-        }
-
-        stage('Frontend Test') {
-            steps {
-                dir('frontend') {
-                    echo '🧪 Running frontend tests...'
-                    sh 'npm run test'
-                }
-            }
-        }
-
+    
         stage('Docker Build and Push') {
             steps {
                 script {
@@ -86,11 +60,6 @@ pipeline {
                             backendImage.push()
                         }
 
-                        echo '🐳 Building and pushing frontend image...'
-                        dir('frontend') {
-                            def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:latest")
-                            frontendImage.push()
-                        }
                     }
                 }
             }
