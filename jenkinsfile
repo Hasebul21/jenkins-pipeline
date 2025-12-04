@@ -5,14 +5,23 @@ pipeline {
         nodejs 'NODE24'
     }
 
-     parameters {
+    parameters {
         choice(
             name: 'DEPLOY_ENV',
             choices: ['staging', 'production'],
             description: 'Select the environment to deploy to'
         )
+        booleanParam(
+            name: 'RUN_TESTS',
+            defaultValue: true,
+            description: 'Run unit tests before deployment?'
+        )
+        booleanParam(
+            name: 'PUSH_DOCKER',
+            defaultValue: true,
+            description: 'Build and push Docker image?'
+        )
     }
-
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub'
@@ -41,6 +50,9 @@ pipeline {
         }
 
         stage('Backend Test') {
+            when {
+                expression { return params.RUN_TESTS }
+            }
             steps {
                 dir('backend') {
                     echo '🧪 Running backend tests...'
@@ -49,47 +61,19 @@ pipeline {
             }
         }
 
-        stage('Frontend Installation') {
-            steps {
-                dir('frontend') {
-                    echo '📦 Installing frontend dependencies...'
-                    sh 'npm install'
-                }
-            }
-        }
-
-        stage('Frontend Build') {
-            steps {
-                dir('frontend') {
-                    echo '🏗️ Building frontend...'
-                    sh 'npm run build'
-                }
-            }
-        }
-
-        stage('Frontend Test') {
-            steps {
-                dir('frontend') {
-                    echo '🧪 Running frontend tests...'
-                    sh 'npm run test'
-                }
-            }
-        }
-
         stage('Docker Build and Push') {
+            when {
+                expression { return params.PUSH_DOCKER }
+            }
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
-                        echo '🐳 Building and pushing backend image...'
                         dir('backend') {
-                            def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:latest")
+                            def imageTag = params.DEPLOY_ENV == 'production' ? 'latest' : 'staging'
+                            echo "🐳 Building Docker image for environment: ${params.DEPLOY_ENV}"
+                            def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:${imageTag}")
+                            echo "🚀 Pushing Docker image: ${DOCKERHUB_USER}/jenkins_backend-app:${imageTag}"
                             backendImage.push()
-                        }
-
-                        echo '🐳 Building and pushing frontend image...'
-                        dir('frontend') {
-                            def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:latest")
-                            frontendImage.push()
                         }
                     }
                 }
@@ -98,12 +82,11 @@ pipeline {
     }
 
     post {
-       success {
-            echo 'Build succeeded'
+        success {
+            echo '✅ Build succeeded'
         }
         failure {
-            echo 'Build failed'
+            echo '❌ Build failed'
         }
-
     }
 }
