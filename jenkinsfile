@@ -5,14 +5,38 @@ pipeline {
         nodejs 'NODE24'
     }
 
-     parameters {
+    parameters {
         choice(
             name: 'DEPLOY_ENV',
             choices: ['staging', 'production'],
             description: 'Select the environment to deploy to'
         )
+        string(
+            name: 'BRANCH_TO_BUILD',
+            defaultValue: 'main',
+            description: 'Enter the branch you want to build'
+        )
+        booleanParam(
+            name: 'RUN_BACKEND_TESTS',
+            defaultValue: true,
+            description: 'Run backend unit tests?'
+        )
+        booleanParam(
+            name: 'RUN_FRONTEND_TESTS',
+            defaultValue: true,
+            description: 'Run frontend unit tests?'
+        )
+        booleanParam(
+            name: 'PUSH_BACKEND_DOCKER',
+            defaultValue: true,
+            description: 'Build and push backend Docker image?'
+        )
+        booleanParam(
+            name: 'PUSH_FRONTEND_DOCKER',
+            defaultValue: true,
+            description: 'Build and push frontend Docker image?'
+        )
     }
-
 
     environment {
         DOCKERHUB_CREDENTIALS = 'dockerhub'
@@ -22,6 +46,38 @@ pipeline {
     }
 
     stages {
+
+        stage('Checkout Backend') {
+    steps {
+        dir('backend') {
+            echo "📥 Checking out backend branch: ${params.BRANCH_TO_BUILD}"
+            checkout([$class: 'GitSCM', 
+                branches: [[name: "*/${params.BRANCH_TO_BUILD}"]],
+                userRemoteConfigs: [[
+                    url: 'https://github.com/Hasebul21/jenkins-pipeline.git',
+                    credentialsId: 'github-pat' // Use the Jenkins PAT credentials
+                ]]
+            ])
+        }
+    }
+}
+
+stage('Checkout Frontend') {
+    steps {
+        dir('frontend') {
+            echo "📥 Checking out frontend branch: ${params.BRANCH_TO_BUILD}"
+            checkout([$class: 'GitSCM', 
+                branches: [[name: "*/${params.BRANCH_TO_BUILD}"]],
+                userRemoteConfigs: [[
+                    url: 'https://github.com/Hasebul21/jenkins-pipeline.git',
+                    credentialsId: 'github-pat' // Use the Jenkins PAT credentials
+                ]]
+            ])
+        }
+    }
+}
+
+
         stage('Backend Installation') {
             steps {
                 dir('backend') {
@@ -41,6 +97,7 @@ pipeline {
         }
 
         stage('Backend Test') {
+            when { expression { return params.RUN_BACKEND_TESTS } }
             steps {
                 dir('backend') {
                     echo '🧪 Running backend tests...'
@@ -68,6 +125,7 @@ pipeline {
         }
 
         stage('Frontend Test') {
+            when { expression { return params.RUN_FRONTEND_TESTS } }
             steps {
                 dir('frontend') {
                     echo '🧪 Running frontend tests...'
@@ -76,34 +134,48 @@ pipeline {
             }
         }
 
-        stage('Docker Build and Push') {
+        stage('Docker Build and Push Backend') {
+            when { expression { return params.PUSH_BACKEND_DOCKER } }
             steps {
                 script {
                     docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
-                        echo '🐳 Building and pushing backend image...'
                         dir('backend') {
-                            def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:latest")
+                            def backendTag = params.DEPLOY_ENV == 'production' ? 'latest' : 'staging'
+                            echo "🐳 Building backend Docker image for ${params.DEPLOY_ENV}"
+                            def backendImage = docker.build("${DOCKERHUB_USER}/jenkins_backend-app:${backendTag}")
+                            echo "🚀 Pushing backend Docker image: ${DOCKERHUB_USER}/jenkins_backend-app:${backendTag}"
                             backendImage.push()
                         }
+                    }
+                }
+            }
+        }
 
-                        echo '🐳 Building and pushing frontend image...'
+        stage('Docker Build and Push Frontend') {
+            when { expression { return params.PUSH_FRONTEND_DOCKER } }
+            steps {
+                script {
+                    docker.withRegistry('https://index.docker.io/v1/', DOCKERHUB_CREDENTIALS) {
                         dir('frontend') {
-                            def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:latest")
+                            def frontendTag = params.DEPLOY_ENV == 'production' ? 'latest' : 'staging'
+                            echo "🐳 Building frontend Docker image for ${params.DEPLOY_ENV}"
+                            def frontendImage = docker.build("${DOCKERHUB_USER}/jenkins_frontend-app:${frontendTag}")
+                            echo "🚀 Pushing frontend Docker image: ${DOCKERHUB_USER}/jenkins_frontend-app:${frontendTag}"
                             frontendImage.push()
                         }
                     }
                 }
             }
         }
+
     }
 
     post {
-       success {
-            echo 'Build succeeded'
+        success {
+            echo '✅ Build succeeded'
         }
         failure {
-            echo 'Build failed'
+            echo '❌ Build failed'
         }
-
     }
 }
